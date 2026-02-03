@@ -1,0 +1,33 @@
+{
+  "name": "weather-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/express": "^4.17.25",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.0.6",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "bottleneck": "^2.19.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1"
+  }
+}

@@ -1,0 +1,38 @@
+import { Router, Request, Response } from 'express';
+import { WeatherService } from '../services/WeatherService';
+
+const weatherRouter = Router();
+const weatherService = new WeatherService(process.env.WEATHER_API_KEY || '');
+
+weatherRouter.get('/current', async (req: Request, res: Response) => {
+    try {
+        const { city, page, limit } = req.query;
+
+        if (!city || typeof city !== 'string') {
+            return res.status(400).json({
+                error: 'City query parameter is required'
+            });
+        }
+
+        const pageNum = page ? parseInt(page as string) : undefined;
+        const limitNum = limit ? parseInt(limit as string) : undefined;
+
+        const result = await weatherService.getCurrentWeatherForMatchingCities(city, {
+            page: pageNum,
+            limit: limitNum,
+        });
+
+        return res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+        return res.status(500).json({
+            success: false,
+            error: errorMessage
+        });
+    }
+});
+
+export default weatherRouter;
