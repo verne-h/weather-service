@@ -1,10 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { WeatherService } from '../services/WeatherService';
+import { configManager } from '../config/envConfig';
+import { rateLimiter } from '../middleware/rateLimiter';
 
 const weatherRouter = Router();
-const weatherService = new WeatherService(process.env.WEATHER_API_KEY || '');
 
-weatherRouter.get('/current', async (req: Request, res: Response) => {
+// Initialize WeatherService with API key from config
+const config = configManager.getConfig();
+const weatherService = new WeatherService(config.weatherApiKey);
+
+weatherRouter.get('/current', rateLimiter, async (req: Request, res: Response) => {
     try {
         const { city, page, limit } = req.query;
 

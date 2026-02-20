@@ -166,10 +166,10 @@ weather-service/
 
 ## Architecture
 
-- **WeatherApiClient**: Handles HTTP requests to the WeatherAPI.com service with built-in rate limiting using Bottleneck
+- **WeatherApiClient**: Handles HTTP requests to the WeatherAPI.com service with built-in rate limiting using Bottleneck (3 concurrent requests, 100ms between requests) to respect external API limits
 - **WeatherService**: Business logic layer that transforms raw API responses into a clean, formatted structure
 - **weatherRoutes**: Express router that defines API endpoints and handles request validation
-- **Rate Limiter**: Configurable middleware to prevent API abuse (default: 3 concurrent requests, 100ms between requests)
+- **Rate Limiter**: Middleware to prevent API abuse on incoming requests (default: 10 requests per minute per IP address)
 
 ## Technologies Used
 
@@ -186,8 +186,9 @@ weather-service/
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `WEATHER_API_KEY` | Your WeatherAPI.com API key | Yes | - |
-| `PORT` | Server port number | No | 3000 |
+| `PORT` | Server port number | No | 3000 || `NODE_ENV` | Environment mode (development/production) | No | development |
 
+**Note:** The server automatically binds to `localhost` in development mode and `0.0.0.0` in production mode for security and deployment flexibility.
 ## License
 
 ISC

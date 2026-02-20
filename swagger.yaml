@@ -1,0 +1,324 @@
+openapi: 3.0.0
+info:
+  title: Weather Service API
+  description: A weather service API that provides current weather information for cities worldwide
+  version: 1.0.0
+  contact:
+    name: Weather Service API Support
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://api.weather-service.com
+    description: Production server
+
+tags:
+  - name: Weather
+    description: Weather data endpoints
+
+paths:
+  /weather/current:
+    get:
+      tags:
+        - Weather
+      summary: Get current weather for matching cities
+      description: Retrieves current weather information for all cities matching the provided query with pagination support
+      operationId: getCurrentWeather
+      parameters:
+        - name: city
+          in: query
+          description: City name or partial city name to search for
+          required: true
+          schema:
+            type: string
+            example: London
+        - name: page
+          in: query
+          description: Page number for pagination (default is 1)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: Number of results per page (default is 20, max is 20)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 20
+            example: 10
+      responses:
+        '200':
+          description: Successful response with weather data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeatherResponse'
+              examples:
+                success:
+                  summary: Successful weather data retrieval
+                  value:
+                    success: true
+                    data:
+                      - city: London
+                        region: City of London, Greater London
+                        country: United Kingdom
+                        temperature:
+                          celsius: 12.0
+                          fahrenheit: 53.6
+                          feelsLikeCelsius: 10.5
+                          feelsLikeFahrenheit: 50.9
+                        condition:
+                          text: Partly cloudy
+                          icon: //cdn.weatherapi.com/weather/64x64/day/116.png
+                        wind:
+                          speedKph: 15.8
+                          speedMph: 9.8
+                          direction: WSW
+                          degree: 240
+                        humidity: 72
+                        pressure:
+                          mb: 1013.0
+                          in: 29.91
+                        visibility:
+                          km: 10.0
+                          miles: 6.0
+                        uv: 3.0
+                        localTime: "2026-02-15 14:30"
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 1
+                      totalPages: 1
+        '400':
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingCity:
+                  summary: Missing city parameter
+                  value:
+                    error: City query parameter is required
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Server error
+                  value:
+                    success: false
+                    error: Internal server error
+
+components:
+  schemas:
+    WeatherResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+          example: true
+        data:
+          type: array
+          description: Array of weather data for matching cities
+          items:
+            $ref: '#/components/schemas/WeatherData'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required:
+        - success
+        - data
+        - pagination
+
+    WeatherData:
+      type: object
+      properties:
+        city:
+          type: string
+          description: City name
+          example: London
+        region:
+          type: string
+          description: Region or state name
+          example: City of London, Greater London
+        country:
+          type: string
+          description: Country name
+          example: United Kingdom
+        temperature:
+          $ref: '#/components/schemas/Temperature'
+        condition:
+          $ref: '#/components/schemas/Condition'
+        wind:
+          $ref: '#/components/schemas/Wind'
+        humidity:
+          type: number
+          description: Humidity percentage
+          example: 72
+        pressure:
+          $ref: '#/components/schemas/Pressure'
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        uv:
+          type: number
+          description: UV index
+          example: 3.0
+        localTime:
+          type: string
+          description: Local time at the location
+          example: "2026-02-15 14:30"
+      required:
+        - city
+        - region
+        - country
+        - temperature
+        - condition
+        - wind
+        - humidity
+        - pressure
+        - visibility
+        - uv
+        - localTime
+
+    Temperature:
+      type: object
+      properties:
+        celsius:
+          type: number
+          description: Temperature in Celsius
+          example: 12.0
+        fahrenheit:
+          type: number
+          description: Temperature in Fahrenheit
+          example: 53.6
+        feelsLikeCelsius:
+          type: number
+          description: Feels like temperature in Celsius
+          example: 10.5
+        feelsLikeFahrenheit:
+          type: number
+          description: Feels like temperature in Fahrenheit
+          example: 50.9
+      required:
+        - celsius
+        - fahrenheit
+        - feelsLikeCelsius
+        - feelsLikeFahrenheit
+
+    Condition:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Weather condition description
+          example: Partly cloudy
+        icon:
+          type: string
+          description: URL to weather condition icon
+          example: //cdn.weatherapi.com/weather/64x64/day/116.png
+      required:
+        - text
+        - icon
+
+    Wind:
+      type: object
+      properties:
+        speedKph:
+          type: number
+          description: Wind speed in kilometers per hour
+          example: 15.8
+        speedMph:
+          type: number
+          description: Wind speed in miles per hour
+          example: 9.8
+        direction:
+          type: string
+          description: Wind direction compass point
+          example: WSW
+        degree:
+          type: number
+          description: Wind direction in degrees
+          example: 240
+      required:
+        - speedKph
+        - speedMph
+        - direction
+        - degree
+
+    Pressure:
+      type: object
+      properties:
+        mb:
+          type: number
+          description: Pressure in millibars
+          example: 1013.0
+        in:
+          type: number
+          description: Pressure in inches
+          example: 29.91
+      required:
+        - mb
+        - in
+
+    Visibility:
+      type: object
+      properties:
+        km:
+          type: number
+          description: Visibility in kilometers
+          example: 10.0
+        miles:
+          type: number
+          description: Visibility in miles
+          example: 6.0
+      required:
+        - km
+        - miles
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 20
+        total:
+          type: integer
+          description: Total number of items
+          example: 50
+        totalPages:
+          type: integer
+          description: Total number of pages
+          example: 3
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful (false for errors)
+          example: false
+        error:
+          type: string
+          description: Error message
+          example: City query parameter is required
