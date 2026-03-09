@@ -1,8 +1,14 @@
 import { WeatherApiClient } from "../clients/WeatherApiClient";
+import { runWorker } from "../workers/WorkerPool";
+import path from "path";
+
+// Threshold for using worker threads (number of items to process)
+const WORKER_THRESHOLD = 50;
 
 interface PaginationOptions {
     page?: number;
     limit?: number;
+    useWorker?: boolean; // Option to force worker thread usage
 }
 
 interface PaginatedWeatherResult {
@@ -65,7 +71,7 @@ export class WeatherService {
         query: string,
         options: PaginationOptions = {}
     ): Promise<PaginatedWeatherResult> {
-        const { page = 1, limit = 20 } = options;
+        const { page = 1, limit = 20, useWorker } = options;
         const pageNum = Math.max(1, page);
         const limitNum = Math.min(20, Math.max(1, limit));
 
@@ -74,6 +80,43 @@ export class WeatherService {
 
         const rawWeatherList = await this.weatherClient.getCurrentWeatherForMatchingCities(query, totalNeeded);
 
+        // Use worker thread for large datasets to avoid blocking the event loop
+        const shouldUseWorker = useWorker ?? rawWeatherList.length >= WORKER_THRESHOLD;
+
+        if (shouldUseWorker) {
+            return this.processWithWorker(rawWeatherList, pageNum, limitNum);
+        }
+
+        return this.processInMainThread(rawWeatherList, pageNum, limitNum);
+    }
+
+    /**
+     * Process weather data using a worker thread (for large datasets)
+     */
+    private async processWithWorker(
+        rawWeatherList: any[],
+        page: number,
+        limit: number
+    ): Promise<PaginatedWeatherResult> {
+        const workerPath = path.join(__dirname, '../workers/weatherDataWorker.js');
+
+        console.log(`Processing ${rawWeatherList.length} items using worker thread`);
+
+        return runWorker<any, PaginatedWeatherResult>(workerPath, {
+            rawWeatherList,
+            page,
+            limit,
+        });
+    }
+
+    /**
+     * Process weather data in the main thread (for small datasets)
+     */
+    private processInMainThread(
+        rawWeatherList: any[],
+        pageNum: number,
+        limitNum: number
+    ): PaginatedWeatherResult {
         const allResults = rawWeatherList.map(rawWeather => ({
             city: rawWeather.location.name,
             region: rawWeather.location.region,

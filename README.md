@@ -7,6 +7,8 @@ A TypeScript-based REST API service that provides current weather information fo
 - 🌤️ Fetch current weather data for multiple matching cities
 - 📄 Paginated API responses
 - 🚦 Built-in rate limiting to prevent API abuse
+- ⚡ **Multi-process clustering** for horizontal scaling across CPU cores
+- 🧵 **Worker threads** for CPU-intensive data processing (automatic for large datasets)
 - 🔄 Comprehensive error handling
 - ✅ Unit tested with Jest
 - 📦 Written in TypeScript for type safety
@@ -78,6 +80,7 @@ Retrieves current weather data for all cities matching the query string.
 - `city` (required): City name or partial city name to search for
 - `page` (optional): Page number for pagination (default: 1, min: 1)
 - `limit` (optional): Number of results per page (default: 20, min: 1, max: 20)
+- `useWorker` (optional): Force worker thread processing (default: auto for 50+ items)
 
 **Example Request:**
 ```bash
@@ -146,6 +149,8 @@ weather-service/
 ├── src/
 │   ├── clients/
 │   │   └── WeatherApiClient.ts      # API client for WeatherAPI.com
+│   ├── config/
+│   │   └── envConfig.ts             # Environment configuration
 │   ├── middleware/
 │   │   └── rateLimiter.ts           # Rate limiting middleware
 │   ├── routes/
@@ -153,7 +158,10 @@ weather-service/
 │   ├── services/
 │   │   └── WeatherService.ts        # Business logic layer
 │   ├── stores/                      # Data stores (if needed)
-│   └── index.ts                     # Application entry point
+│   ├── workers/
+│   │   ├── WorkerPool.ts            # Worker thread pool management
+│   │   └── weatherDataWorker.ts     # Weather data processing worker
+│   └── index.ts                     # Application entry point (cluster primary)
 ├── tests/
 │   └── WeatherService.test.ts       # Unit tests
 ├── .env                             # Environment variables (not in repo)
@@ -166,10 +174,33 @@ weather-service/
 
 ## Architecture
 
+### Core Components
+
 - **WeatherApiClient**: Handles HTTP requests to the WeatherAPI.com service with built-in rate limiting using Bottleneck (3 concurrent requests, 100ms between requests) to respect external API limits
 - **WeatherService**: Business logic layer that transforms raw API responses into a clean, formatted structure
 - **weatherRoutes**: Express router that defines API endpoints and handles request validation
 - **Rate Limiter**: Middleware to prevent API abuse on incoming requests (default: 10 requests per minute per IP address)
+
+### Concurrency & Parallelism
+
+#### Cluster Mode (Multi-Process)
+The application uses Node.js cluster module to spawn multiple worker processes:
+- **Primary Process**: Manages worker processes, not handling requests
+- **Worker Processes**: One per CPU core, each running a full Express server
+- **Load Balancing**: OS-level load balancing across workers on the same port
+- **Auto-Restart**: Workers automatically restart on crash for high availability
+
+#### Worker Threads (Multi-Threading)
+For CPU-intensive data transformation:
+- **Automatic Threshold**: Automatically uses worker threads for 50+ items
+- **WorkerPool**: Reusable thread pool utility for efficient resource management
+- **weatherDataWorker**: Offloads JSON transformation and pagination to separate thread
+- **Non-Blocking**: Keeps event loop free for handling incoming requests
+
+**Performance Notes:**
+- Small datasets (< 50 items): Processed in main thread (faster due to no thread overhead)
+- Large datasets (≥ 50 items): Automatically offloaded to worker thread
+- Force worker usage: Add `useWorker=true` query parameter
 
 ## Technologies Used
 
